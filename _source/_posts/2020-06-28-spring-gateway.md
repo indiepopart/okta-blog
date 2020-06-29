@@ -111,7 +111,7 @@ Now let's create an API Gateway with Spring Cloud Gateway, using Spring Initiali
 
 ```shell
 curl https://start.spring.io/starter.zip \
--d dependencies=cloud-eureka,cloud-gateway,webflux,okta,security,thymeleaf \
+-d dependencies=cloud-eureka,cloud-gateway,webflux,okta,cloud-security,thymeleaf \
 -d groupId=com.okta.developer \
 -d artifactId=api-gateway  \
 -d name="Spring Cloud Gateway Application" \
@@ -277,14 +277,364 @@ accessToken: eyJraWQiOiIwYVM4bk4tM241emZYRDJfMU1yYUhzYURUZ0trVWZ4aWNaQXZDc0Fwb2l
 
 Let's create a cart service.
 
+```shell
+curl https://start.spring.io/starter.zip -d dependencies=web,data-jpa,h2,cloud-eureka,okta,security \
+-d groupId=com.okta.developer \
+-d artifactId=cart-service  \
+-d name="Cart Service" \
+-d description="Demo cart microservice" \
+-d packageName=com.okta.developer.cartservice \
+-d javaVersion=11 \
+-o cart-service.zip
+```
+Unzip the file:
+
+```shell
+unzip cart-service.zip -d cart-service
+cd cart-service
+```
+Edit `pom.xml` and add [Jackson Datatype Money](https://github.com/zalando/jackson-datatype-money) dependency. For this tutorial, we will use [JavaMoney](https://javamoney.github.io/ri.html) for currency.
+
+```xml
+<dependency>
+  <groupId>org.zalando</groupId>
+  <artifactId>jackson-datatype-money</artifactId>
+  <version>1.1.1</version>
+</dependency>
+```
+
+Create the `Cart` and `LineItem` model classes under `src/main/java/com.okta.developer.cartservice.model` package:
+
+```java
+package com.okta.developer.cartservice.model;
+
+
+import javax.money.MonetaryAmount;
+import javax.persistence.*;
+import java.util.ArrayList;
+import java.util.List;
+
+@Entity
+public class Cart {
+
+    @Id
+    @GeneratedValue(strategy= GenerationType.AUTO)
+    private Integer id;
+
+    private String customerId;
+    @Convert(converter=MonetaryAmountConverter.class)
+    private MonetaryAmount total;
+
+    @OneToMany(cascade = CascadeType.ALL)
+    private List<LineItem> lineItems = new ArrayList<>();
+
+    public Integer getId() {
+        return id;
+    }
+
+    public void setId(Integer id) {
+        this.id = id;
+    }
+
+    public String getCustomerId() {
+        return customerId;
+    }
+
+    public void setCustomerId(String customerId) {
+        this.customerId = customerId;
+    }
+
+    public List<LineItem> getLineItems() {
+        return lineItems;
+    }
+
+    public void setLineItems(List<LineItem> lineItems) {
+        this.lineItems = lineItems;
+    }
+
+    public MonetaryAmount getTotal() {
+        return total;
+    }
+
+    public void setTotal(MonetaryAmount total) {
+        this.total = total;
+    }
+
+    public void addLineItem(LineItem lineItem) {
+        this.lineItems.add(lineItem);
+    }
+}
+```
+
+```java
+package com.okta.developer.cartservice.model;
+
+import javax.money.MonetaryAmount;
+import javax.persistence.*;
+
+@Entity
+public class LineItem {
+
+    @Id
+    @GeneratedValue(strategy= GenerationType.AUTO)
+    private Integer id;
+
+
+    private String productName;
+    private Integer quantity;
+    @Convert(converter=MonetaryAmountConverter.class)
+    private MonetaryAmount price;
+
+
+    public String getProductName() {
+        return productName;
+    }
+
+    public void setProductName(String productName) {
+        this.productName = productName;
+    }
+
+    public Integer getQuantity() {
+        return quantity;
+    }
+
+    public void setQuantity(Integer quantity) {
+        this.quantity = quantity;
+    }
+
+    public MonetaryAmount getPrice() {
+        return price;
+    }
+
+    public void setPrice(MonetaryAmount price) {
+        this.price = price;
+    }
+
+    public Integer getId() {
+        return id;
+    }
+
+    public void setId(Integer id) {
+        this.id = id;
+    }
+}
+```
+
+Add a `CartRepository` under `src/main/java/com.okta.developer.cartservice.repository`:
+
+```java
+package com.okta.developer.cartservice.repository;
+
+import com.okta.developer.cartservice.model.Cart;
+import org.springframework.data.repository.CrudRepository;
+
+public interface CartRepository extends CrudRepository<Cart, Integer> {
+}
+```
+
+Add a `MonetaryAmountConverter` for mapping the `MonetaryAmount` type to the database, under `src/main/java/com.okta.developer.cartservice.model`:
+
+```java
+package com.okta.developer.cartservice.model;
+
+import javax.money.CurrencyUnit;
+import javax.money.Monetary;
+import javax.money.MonetaryAmount;
+import javax.persistence.AttributeConverter;
+import java.math.BigDecimal;
+
+public class MonetaryAmountConverter implements AttributeConverter<MonetaryAmount, BigDecimal> {
+
+    private final CurrencyUnit USD = Monetary.getCurrency("USD");
+
+
+    @Override
+    public BigDecimal convertToDatabaseColumn(MonetaryAmount monetaryAmount) {
+        if (monetaryAmount == null){
+            return null;
+        }
+        return monetaryAmount.getNumber().numberValue(BigDecimal.class);
+    }
+
+    @Override
+    public MonetaryAmount convertToEntityAttribute(BigDecimal bigDecimal) {
+        if (bigDecimal == null){
+            return null;
+        }
+        return Monetary.getDefaultAmountFactory()
+                .setCurrency(USD)
+                .setNumber(bigDecimal.doubleValue())
+                .create();
+    }
+}
+```
+
+Add a `CartController` under `src/main/java/com.okta.developer.cartservice.controller`:
+
+```java
+package com.okta.developer.cartservice.controller;
+
+import com.okta.developer.cartservice.model.Cart;
+import com.okta.developer.cartservice.repository.CartRepository;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.web.bind.annotation.*;
+
+@RestController
+public class CartController {
+
+
+    @Autowired
+    private CartRepository repository;
+
+    @GetMapping("/cart/{id}")
+    public Cart getCart(@PathVariable Integer id){
+        return repository.findById(id).orElseThrow(() -> new CartNotFoundException("Cart not found:" + id));
+    }
+
+    @PostMapping("/cart")
+    public Cart saveCart(@RequestBody  Cart cart){
+
+        Cart saved = repository.save(cart);
+        return saved;
+    }
+}
+```
+
+Create the `CartNotFoundException` under `src/main/java/com.okta.developer.cartservice.controller` for mapping the API 404:
+
+```java
+package com.okta.developer.cartservice.controller;
+
+import org.springframework.http.HttpStatus;
+import org.springframework.web.bind.annotation.ResponseStatus;
+
+@ResponseStatus(HttpStatus.NOT_FOUND)
+public class CartNotFoundException extends RuntimeException {
+
+    public CartNotFoundException(String message) {
+        super(message);
+    }
+}
+```
+
+Configure the Jackson Money Datatype module. Add a `WebConfig` class under `src/main/java/com.okta.developer.cartservice`:
+
+```java
+package com.okta.developer.cartservice;
+
+
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
+import org.zalando.jackson.datatype.money.MoneyModule;
+
+@Configuration
+public class WebConfig implements WebMvcConfigurer {
+
+    @Bean
+    public MoneyModule moneyModule(){
+        return new MoneyModule().withDefaultFormatting();
+    }
+}
+```
+Edit `CartServiceApplication` and add `@EnableEurekaClient`:
+
+```java
+package com.okta.developer.cartservice;
+
+import org.springframework.boot.SpringApplication;
+import org.springframework.boot.autoconfigure.SpringBootApplication;
+import org.springframework.cloud.netflix.eureka.EnableEurekaClient;
+
+@SpringBootApplication
+@EnableEurekaClient
+public class CartServiceApplication {
+
+	public static void main(String[] args) {
+		SpringApplication.run(CartServiceApplication.class, args);
+	}
+
+}
+```
+Rename `src/main/resources/application.propeties` to `application.yml` and add the following values:
+
+```yml
+server:
+  port: 8081
+
+spring:
+  application:
+    name: cart
+
+okta:
+  oauth2:
+    issuer: {yourOktaIssuer}
+    audience: api://default
+```
+
+Start the `cart-service`:
+
+```shell
+./mvnw spring-boot:run
+```
 
 
 
+Go to the `api-gateway` and add a route for the cart service, edit `SpringCloudGatewayApplication`:
 
-TokenRelayGatewayFilterFactory deprecated
-From the principal, it gets the client registration id and finds the authorized client, to obtain the access token.
+```java
+package com.okta.developer.gateway;
 
-Another implementation would be to create a custom filter that gets the client registration and adds the bearer token.
+import org.springframework.boot.SpringApplication;
+import org.springframework.boot.autoconfigure.SpringBootApplication;
+import org.springframework.cloud.gateway.route.RouteLocator;
+import org.springframework.cloud.gateway.route.builder.RouteLocatorBuilder;
+import org.springframework.cloud.netflix.eureka.EnableEurekaClient;
+import org.springframework.cloud.security.oauth2.gateway.TokenRelayGatewayFilterFactory;
+import org.springframework.context.annotation.Bean;
+
+@SpringBootApplication
+@EnableEurekaClient
+public class SpringCloudGatewayApplication {
+
+	public static void main(String[] args) {
+		SpringApplication.run(SpringCloudGatewayApplication.class, args);
+	}
+
+
+	@Bean
+	public RouteLocator routeLocator(RouteLocatorBuilder builder, TokenRelayGatewayFilterFactory filterFactory) {
+		return builder.routes()
+				.route("cart", r -> r.path("/cart/**")
+						.filters(f -> f.filter(filterFactory.apply()))
+				.uri("lb://cart"))
+				.build();
+	}
+
+}
+```
+
+
+`TokenRelayGatewayFilterFactory` will find the accessToken from the registered OAuth2 client and include it in the outbound cart request.
+
+Restart the gateway with:
+```shell
+OKTA_OAUTH2_ISSUER={yourOktaIssuer} \
+OKTA_OAUTH2_CLIENT_ID={yourOktaClientId} \
+OKTA_OAUTH2_CLIENT_SECRET={yourOktaClientSecret} \
+./mvnw spring-boot:run
+```
+
+Got to http://localhost:8080/greeting and copy the accessToken. Then use the accessToken to make requests to the cart A
+
+```shell
+curl \
+  -d '{"customerId": "uijoon@mail.com", "lineItems": [{ "productName": "jeans", "quantity": 1}]}' \
+  -H "Authorization: Bearer {AccessToken}" \
+  -H 'Content-Type: application/json' \
+  -H 'Accept: application/json' \
+  https://localhost:8080/cart
+```
 
 
 ```shell
@@ -293,6 +643,9 @@ curl \
   -H "Authorization: Bearer {AccessToken}" \
   https://localhost:8080/cart/1
 ```
+
+
+
 ```json
 {
    "id":1,
