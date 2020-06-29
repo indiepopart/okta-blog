@@ -1,7 +1,7 @@
 ---
 layout: blog_post
 title: "Spring Cloud Gateway OAuth2 Patterns"
-author: jimena-garbraino
+author: jimena-garbarino
 by: contractor
 communities: [java]
 description: ""
@@ -14,15 +14,16 @@ image:
 type: awareness|conversion
 ---
 
-spring-gateway introduction
+Spring Cloud Gateway is the Reactive API Gateway of the Spring Ecosystem, built on Spring Boot, WebFlux and Project Reactor. Its job is to proxy and route requests to services, and provide cross cutting concerns such as security, monitoring and resilience. As Reactive models gain popularity, there is a chance that your microservices architecture becomes a mix of Spring MVC blocking applications and Spring WebFlux non-blocking applications.
 
-**Prerequisites**: [Java 8](https://adoptopenjdk.net/)+
-
-In this tutorial we will create a microservices architecture to learn the configuration of three common OAuth2 patterns, using Okta as authentication provider:
+In this tutorial you will use Spring Cloud Gateway for routing to traditional Servlet API microservices, and you will learn the required configuration for three common OAuth2 patterns, using Okta as authorization server:
 
 - Spring Cloud Gateway OpenID Connect Login
 - Cart Microservice OAuth2 Authorization
 - Pricing Microservice Client Credentials Grant
+
+**Prerequisites**: [Java 8](https://adoptopenjdk.net/)+
+
 
 ## Pattern 1: Authentication with Authorization Code Flow
 
