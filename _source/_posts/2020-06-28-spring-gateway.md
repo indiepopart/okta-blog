@@ -614,7 +614,6 @@ public class SpringCloudGatewayApplication {
 }
 ```
 
-
 `TokenRelayGatewayFilterFactory` will find the accessToken from the registered OAuth2 client and include it in the outbound cart request.
 
 Restart the gateway with:
@@ -625,24 +624,32 @@ OKTA_OAUTH2_CLIENT_SECRET={yourOktaClientSecret} \
 ./mvnw spring-boot:run
 ```
 
-Got to http://localhost:8080/greeting and copy the accessToken. Then use the accessToken to make requests to the cart A
+Got to http://localhost:8080/greeting and copy the **accessToken**. Then use the accessToken to make requests to the cart API through the gateway.
 
 ```shell
 curl \
   -d '{"customerId": "uijoon@mail.com", "lineItems": [{ "productName": "jeans", "quantity": 1}]}' \
-  -H "Authorization: Bearer {AccessToken}" \
+  -H "Authorization: Bearer {accessToken}" \
   -H 'Content-Type: application/json' \
   -H 'Accept: application/json' \
-  https://localhost:8080/cart
+  http://localhost:8080/cart
 ```
-
-
 ```shell
 curl \
   -H 'Accept: application/json' \
-  -H "Authorization: Bearer {AccessToken}" \
-  https://localhost:8080/cart/1
+  -H "Authorization: Bearer {accessToken}" \
+  http://localhost:8080/cart/1
 ```
+
+## Pattern 3: Service to Service Client Credentials Grant
+
+{% img blog/spring-gateway/credentials-grant.png alt:"Credentials Grant Flow" width:"800" %}{: .center-image }
+
+
+For service to service authorization, create a `pricing` Spring Boot service with Spring Initializr:
+
+
+
 
 
 
@@ -679,11 +686,6 @@ curl \
    ]
 }  
 ```      
-
-## Pattern 3: Service to Service Client Credentials Grant
-
-{% img blog/spring-gateway/credentials-grant.png alt:"Credentials Grant Flow" width:"800" %}{: .center-image }
-
 
 ## Learn More
 
