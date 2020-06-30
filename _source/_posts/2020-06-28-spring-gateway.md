@@ -18,11 +18,11 @@ Spring Cloud Gateway is the Reactive API Gateway of the Spring Ecosystem, built 
 
 In this tutorial you will use Spring Cloud Gateway for routing to traditional Servlet API microservices, and you will learn the required configuration for three common OAuth2 patterns, using Okta as authorization server:
 
-- Spring Cloud Gateway OpenID Connect Login
+- Spring Cloud Gateway OpenID Connect Authentication
 - Cart Microservice Authorization by Token Relay
 - Pricing Microservice Client Credentials Grant
 
-**Prerequisites**: [Java 8](https://adoptopenjdk.net/)+
+**Prerequisites**: [Java 8](https://adoptopenjdk.net/)+, cURL
 
 
 ## Pattern 1: Authentication with Authorization Code Flow
@@ -826,10 +826,11 @@ package com.okta.developer.pricing;
 
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 import org.zalando.jackson.datatype.money.MoneyModule;
 
 @Configuration
-public class WebConfig {
+public class WebConfig implements WebMvcConfigurer {
 
     @Bean
     public MoneyModule moneyModule(){
@@ -949,7 +950,7 @@ public class WebConfig implements WebMvcConfigurer {
 }
 ```
 
-Edit the cartservice `application.yml` and add the following:
+Edit the cart-service `application.yml` and add the following:
 
 ```yml
 pricing:
@@ -1058,7 +1059,7 @@ public class CartController {
 }
 ```
 
-Restart the cartservice:
+Restart the cart-service:
 
 ```shell
 PRICING_OAUTH2_CLIENT_CLIENTID={serviceClientId} \
@@ -1107,7 +1108,7 @@ If you see the System Log in Okta Dashboard, you will find an entry indicating t
 
 ## Learn More
 
-In this tutorial you learned how to create an API Gateway with Spring Cloud Gateway, and how configure three common OAuth2 patterns using Okta Spring Boot Starter and Spring Security: code flow, token relay and client credentials grant. You can find all the code at [Github](https://github.com/indiepopart/spring-gateway)
+In this tutorial you learned how to create an API Gateway with Spring Cloud Gateway, and how configure three common OAuth2 patterns using Okta Spring Boot Starter and Spring Security: code flow, token relay and client credentials grant. You can find all the code at [Github](https://github.com/indiepopart/spring-cloud-gateway)
 To continue learning about Spring Cloud Gateway features and OAuth2 authorization patterns, check also the following links:
 
 - [Secure Reactive Microservices with Spring Cloud Gateway](https://developer.okta.com/blog/2019/08/28/reactive-microservices-spring-cloud-gateway)
