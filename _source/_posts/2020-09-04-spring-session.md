@@ -11,7 +11,7 @@ tweets:
 - ""
 - ""
 image:
-type: awareness|conversion
+type: awareness
 ---
 
 # About Session Management
