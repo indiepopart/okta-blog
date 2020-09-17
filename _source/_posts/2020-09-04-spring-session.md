@@ -14,6 +14,8 @@ image:
 type: awareness
 ---
 
+State Multi-node applications present the challenge of ...
+
 
 (introduction)
 
@@ -24,9 +26,9 @@ Prerequisites:
 
 # Session Persistence
 
-Let's first create a web application with Okta authentication, and run three nodes with HAProxy loadbalancing, using Docker Compose.
-
-
+Session Persistence is a technique to stick a client to a single server, using application layer information, for example, a cookie.
+In this tutorial, we will implement session persistence with the help of [HAProxy](http://cbonte.github.io/haproxy-dconv/2.3/intro.html#3), a reliable, high performance, TCP/HTTP load balancer.
+So let's first create a web application with Okta authentication, and run three nodes with HAProxy loadbalancing, using Docker Compose.
 Create a Maven project using Spring Initializr API.
 
 ```shell
@@ -195,7 +197,7 @@ backend servers
 We are not going to dive deep into how to configure HAProxy, but notice in the `backend servers` section, we are using the following options:
 
 - `balance roundrobin` sets roundrobin as the loadbalancing strategy
-- `cookie SERVERUSED` adds a cookie SERVERUSED to the response, indicating the server responding the request. The http session will stick to that server.
+- `cookie SERVERUSED` adds a cookie SERVERUSED to the response, indicating the server responding the request. The client requests will stick to that server.
 - `option redispatch` makes the request to be redispatched to a different server, if the current server fails
 
 
@@ -250,7 +252,9 @@ Check the SERVERUSED cookie to verify that HAProxy redispatched the request to a
 
 # Session Sharing with Spring Session
 
-For a transparent failover, with the `redispatch` option in HAProxy, let's add session sharing between nodes with Spring Session. For this tutorial we are using MySQL for the session storage.
+Storing sessions in an individual node can affect scalability. When scaling up, active sessions will remain in the original nodes and traffic will not be spread equally among nodes. Also, when a node fails, the session in that node is lost. With Session Sharing, the user session lives in a shared data storage that all server nodes can access.
+
+Then, for a transparent failover, with the `redispatch` option in HAProxy, let's add session sharing between nodes with Spring Session. For this tutorial we are using MySQL for the session storage.
 
 First, add the following dependencies to the `pom.xml`:
 
