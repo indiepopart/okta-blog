@@ -434,7 +434,7 @@ You can inspect the session data in the adminer UI at http://localhost:8090. Log
 
 # Learn More
 
-I hope you enjoyed this tutorial and could see the advantages of the session sharing technique for multi-node applications. You can find all the code for this tutorial in [Github](https://github.com/indiepopart/webapp).
+I hope you enjoyed this tutorial and could see the advantages of the session sharing technique for multi-node applications. You can find all the code for this tutorial in [Github](https://github.com/indiepopart/spring-session-demo).
 
 Know that there are multiple options for session storage, we selected a database because of the ease of setup, but it might slow down your application. To learn more about session management, check out the following links:
 
