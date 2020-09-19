@@ -1,7 +1,7 @@
 ---
 layout: blog_post
 title: "Multi-Node Session Sharing in Spring Boot with Spring Session"
-author:
+author: jimena-garbarino
 by: contractor
 communities: [devops,java]
 description: ""
