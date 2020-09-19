@@ -23,7 +23,7 @@ Prerequisites:
 
 # Session Persistence
 
-Session Persistence is a technique to stick a client to a single server, using application layer information, for example, a cookie.
+Session Persistence is a technique for sticking a client to a single server, using application layer information, for example, a cookie.
 In this tutorial, we will implement session persistence with the help of [HAProxy](http://cbonte.github.io/haproxy-dconv/2.3/intro.html#3), a reliable, high performance, TCP/HTTP load balancer.
 
 {% img blog/spring-session/haproxy.png alt:"HAProxy logo" width:"300" %}{: .center-image }
@@ -250,6 +250,8 @@ docker stop docker_webapp3_1
 
 Check the SERVERUSED cookie to verify that HAProxy re-dispatched the request to a different node, and the sessionId has changed, meaning the old session was lost.
 
+You can stop the services with `CTRL+C`.
+
 
 # Session Sharing with Spring Session
 
@@ -285,7 +287,7 @@ First, add the following dependencies to the `pom.xml`:
 </dependency>
 ```
 
-Rename `src/main/resources/aplication.properties` to `application.yml`, and add the following content:
+Rename `src/main/resources/aplication.properties` to `application.yml`, and set the following content:
 
 ```yml
 spring:
@@ -423,7 +425,8 @@ Delete the previous containers and previous `webapp` docker image with the follo
 ```shell
 ./mvnw compile jib:dockerBuild
 ```
-Start all the services again, and repeat the re-dispatch test. The session should be maintained after changing the node.
+Start all the services again, and repeat the re-dispatch test. You will see a lot of connection errors until the database is up.
+Now the session should be maintained after changing the node.
 You can inspect the session data in the adminer UI at http://localhost:8090. Login with `root` and `MYSQL_ROOT_PASSWORD` set in the `docker-compose.yml`
 
 
@@ -431,7 +434,9 @@ You can inspect the session data in the adminer UI at http://localhost:8090. Log
 
 # Learn More
 
-I hope you enjoyed this tutorial and could see the advantages of the session sharing technique for multi-node applications. Know that there are multiple options for session storage, we selected a database because of the ease of setup, but it might slow down your application. To learn more about session management, check out the following links:
+I hope you enjoyed this tutorial and could see the advantages of the session sharing technique for multi-node applications. You can find all the code for this tutorial in [Github](https://github.com/indiepopart/webapp).
+
+Know that there are multiple options for session storage, we selected a database because of the ease of setup, but it might slow down your application. To learn more about session management, check out the following links:
 
 - [Spring Session](https://docs.spring.io/spring-session/docs/2.3.1.RELEASE/reference/html5/index.html)
 - [What's New with OAuth and OpenID Connect?](https://developer.okta.com/blog/2020/04/09/whats-new-with-oauth-and-oidc)
