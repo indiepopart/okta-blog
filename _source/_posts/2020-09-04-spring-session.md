@@ -1,6 +1,6 @@
 ---
 layout: blog_post
-title: "Session Sharing in Spring-Boot Application with Multiple Nodes"
+title: "Multi-Node Session Sharing in Spring Boot with Spring Session"
 author:
 by: contractor
 communities: [devops,java]
@@ -14,10 +14,7 @@ image:
 type: awareness
 ---
 
-State Multi-node applications present the challenge of ...
-
-
-(introduction)
+Session management in multi-node applications presents multiple challenges. When the architecture includes a load balancer, client requests might be routed to different servers each time, and the HTTP session might be lost. In this tutorial, we will walk you through the configuration of session sharing in a multi-node Spring Boot application.
 
 Prerequisites:
 - [Java 8+](https://adoptopenjdk.net/)
@@ -28,7 +25,10 @@ Prerequisites:
 
 Session Persistence is a technique to stick a client to a single server, using application layer information, for example, a cookie.
 In this tutorial, we will implement session persistence with the help of [HAProxy](http://cbonte.github.io/haproxy-dconv/2.3/intro.html#3), a reliable, high performance, TCP/HTTP load balancer.
-So let's first create a web application with Okta authentication, and run three nodes with HAProxy loadbalancing, using Docker Compose.
+
+{% img blog/spring-session/haproxy.png alt:"HAProxy logo" width:"300" %}{: .center-image }
+
+So let's first create a web application with Okta authentication, and run three nodes with HAProxy load balancing, using Docker Compose.
 Create a Maven project using Spring Initializr API.
 
 ```shell
@@ -49,10 +49,11 @@ unzip web-app.zip -d web-app
 cd web-app
 ```
 
-Run the Okta Maven Plugin to Register a new account and configure your Spring application for authentication using Okta:
+Run the [Okta Maven Plugin](https://github.com/oktadeveloper/okta-maven-plugin) to register a new account and configure your Spring application for authentication using Okta:
 ```shell
 ./mvnw com.okta:okta-maven-plugin:spring-boot
 ```
+It will prompt you for the required information and set up a new OIDC application for you.
 
 Create a `GreetingController`:
 
@@ -159,7 +160,7 @@ OKTA_OAUTH2_CLIENT_SECRET={clientSecret}
 ```
 You can find the **orgUrl**, **clientId** and **clientSecret** in the `src/main/resources/application.properties`, after running the okta-maven-plugin.
 
-Create a `Dockerfile` for the HAProxy container, at `docker/Dockerfile-hapoxy`, and add the following:
+Create a `Dockerfile` for the HAProxy container, at `docker/Dockerfile-haproxy`, and add the following:
 
 ```
 FROM haproxy:2.2
@@ -196,9 +197,9 @@ backend servers
 ```
 We are not going to dive deep into how to configure HAProxy, but notice in the `backend servers` section, we are using the following options:
 
-- `balance roundrobin` sets roundrobin as the loadbalancing strategy
-- `cookie SERVERUSED` adds a cookie SERVERUSED to the response, indicating the server responding the request. The client requests will stick to that server.
-- `option redispatch` makes the request to be redispatched to a different server, if the current server fails
+- `balance roundrobin` sets round-robin as the load balancing strategy
+- `cookie SERVERUSED` adds a cookie SERVERUSED to the response, indicating the server responding to the request. The client requests will stick to that server.
+- `option redispatch` makes the request to be re-dispatched to a different server, if the current server fails
 
 
 Edit the `pom.xml` to add the [Jib Maven Plugin](https://github.com/GoogleContainerTools/jib/tree/master/jib-maven-plugin) to containerize the `webapp`.
@@ -247,14 +248,14 @@ Shut down the current node with the following docker command:
 docker stop docker_webapp3_1
 ```
 
-Check the SERVERUSED cookie to verify that HAProxy redispatched the request to a different node, and the sessionId has changed, meaning the old session was lost.
+Check the SERVERUSED cookie to verify that HAProxy re-dispatched the request to a different node, and the sessionId has changed, meaning the old session was lost.
 
 
 # Session Sharing with Spring Session
 
 Storing sessions in an individual node can affect scalability. When scaling up, active sessions will remain in the original nodes and traffic will not be spread equally among nodes. Also, when a node fails, the session in that node is lost. With Session Sharing, the user session lives in a shared data storage that all server nodes can access.
 
-Then, for a transparent failover, with the `redispatch` option in HAProxy, let's add session sharing between nodes with Spring Session. For this tutorial we are using MySQL for the session storage.
+Then, for a transparent failover, with the `redispatch` option in HAProxy, let's add session sharing between nodes with Spring Session. For this tutorial, we are using MySQL for the session storage.
 
 First, add the following dependencies to the `pom.xml`:
 
@@ -305,7 +306,7 @@ logging:
     com.zaxxer.hikari: DEBUG
 ```
 
-We are using HikariCP for the database connection pooling, and the option `initializationFailTimeout` is set to 0, meaning ....
+We are using HikariCP for the database connection pooling, and the option `initializationFailTimeout` is set to 0, meaning if a connection cannot be obtained, the pool will start anyways.
 
 For this example, we are also instructing Spring Session to always create the schema with the option `spring.session.jdbc.initialize-schema=always`.
 
@@ -422,11 +423,17 @@ Delete the previous containers and previous `webapp` docker image with the follo
 ```shell
 ./mvnw compile jib:dockerBuild
 ```
-Start all the services again, and repeat the redispatch test. The session should be maintained after changing the node.
+Start all the services again, and repeat the re-dispatch test. The session should be maintained after changing the node.
 You can inspect the session data in the adminer UI at http://localhost:8090. Login with `root` and `MYSQL_ROOT_PASSWORD` set in the `docker-compose.yml`
 
 
 {% img blog/spring-session/adminer-3.png alt:"Spring Session Table " width:"1000" %}{: .center-image }
 
-
 # Learn More
+
+I hope you enjoyed this tutorial and could see the advantages of the session sharing technique for multi-node applications. Know that there are multiple options for session storage, we selected a database because of the ease of setup, but it might slow down your application. To learn more about session management, check out the following links:
+
+- [Spring Session](https://docs.spring.io/spring-session/docs/2.3.1.RELEASE/reference/html5/index.html)
+- [What's New with OAuth and OpenID Connect?](https://developer.okta.com/blog/2020/04/09/whats-new-with-oauth-and-oidc)
+- [Build Single Sign-on in Java](https://developer.okta.com/blog/2020/01/29/java-single-sign-on)
+- [HAProxy](http://cbonte.github.io/haproxy-dconv/2.3/intro.html#3)
