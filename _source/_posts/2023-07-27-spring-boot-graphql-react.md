@@ -1263,7 +1263,7 @@ __build.gradle__
 ```groovy
 dependencies {
     ...
-    implementation 'com.okta.spring:okta-spring-boot-starter:3.0.5'
+    implementation 'com.okta.spring:okta-spring-boot-starter:3.0.6'
     ...
 }
 ```
@@ -1303,7 +1303,7 @@ __SpringBootApiConfig.java__
 Again, in the root directory, run the API server with:
 
 ```shell
-source .env && ./gradlew bootRun
+./gradlew bootRun
 ```
 
 Get an access token using the Auth0 CLI with the `auth0 test token` command:
@@ -1311,6 +1311,8 @@ Get an access token using the Auth0 CLI with the `auth0 test token` command:
 ```shell
 auth0 test token -a https://<your-auth0-domain>/api/v2/
 ```
+
+Select the **CLI Login Testing** app or any available client when prompted, you don't need to select any scope. You will also be prompted to open a browser window and log in with a user credential.
 
 With HTTPie, send a request to the API server using a bearer access token:
 
@@ -1734,7 +1736,7 @@ import CompanyTable from './CompanyTable';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { CompanyApi, CompanyDTO } from '@/services/companies';
 import Loader from '../loader/Loader';
-import { useAsyncWithToken } from '@/app/hooks/useAsyncWithToken';
+import { useAsyncWithToken } from '@/hooks/useAsyncWithToken';
 
 interface CompanyTableProperties {
   page?: number;
