@@ -30,7 +30,7 @@ This step-by-step guide demonstrates how to build a GraphQL API with Spring Boot
 > - [Java OpenJDK 17](https://jdk.java.net/java-se-ri/17)
 > - [Docker 24.0.7](https://docs.docker.com/desktop/)
 > - [Auth0 account](https://auth0.com/signup)
-> - [Auth0 CLI 1.0.0](https://github.com/auth0/auth0-cli#installation)
+> - [Auth0 CLI 1.3.0](https://github.com/auth0/auth0-cli#installation)
 > - [HTTPie 3.2.2](https://httpie.io/)
 > - [Next.js 14.0.4](https://nextjs.org/)
 
@@ -679,13 +679,11 @@ org.neo4j.migrations.transaction-mode=PER_STATEMENT
 
 
 spring.graphql.cors.allowed-origins=http://localhost:3000
-
-spring.config.import=optional:file:.env
 ```
 
 The property `spring.graphql.cors.allowed-origins` will eventually enable cors for the client application.
 
-Create a `.env` file in the project root to store the Neo4j credentials:
+Create an `.env` file in the server root to store the Neo4j credentials:
 
 __.env__
 ```shell
@@ -704,7 +702,7 @@ Download the following seed files to an empty directory, as it will be mounted t
 
 Spring Boot’s Docker Compose integration now supports Neo4j. You must configure the NEO4J_AUTH environment variable in your compose YAML to disable authentication (a value of none) or to set a password for the neo4j user (a value of neo4j/your-password).
 
-Edit the file `src/compose.yml` and add a service for the Neo4j database.
+Edit the file `compose.yml` and add a service for the Neo4j database.
 
 __neo4j.yml__
 ```yml
